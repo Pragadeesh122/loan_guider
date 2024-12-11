@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and user management
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          UserRole  @default(STAFF)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isActive      Boolean   @default(true)
+  loans         Loan[]    // Loans created by this user
+  payments      Payment[] // Payments recorded by this user
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+// Borrower model for loan applicants
+model Borrower {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String
+  address       String?
+  dateOfBirth   DateTime?
+  idNumber      String?   @unique // National ID or similar
+  occupation    String?
+  monthlyIncome Float?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  isActive      Boolean   @default(true)
+  creditScore   Int?      // Internal credit score
+  loans         Loan[]    // All loans taken by this borrower
+  documents     Document[] // Borrower's documents
+}
+
+// Loan model for managing loans
+model Loan {
+  id                String         @id @default(cuid())
+  borrowerId        String
+  borrower          Borrower       @relation(fields: [borrowerId], references: [id])
+  userId            String
+  user              User           @relation(fields: [userId], references: [id])
+  amount            Float
+  interestRate      Float
+  term             Int            // Loan term in months
+  startDate         DateTime
+  endDate          DateTime?
+  status           LoanStatus     @default(PENDING)
+  type             LoanType       @default(PERSONAL)
+  purpose          String?
+  collateral       String?        // Description of collateral if any
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  payments         Payment[]      // All payments for this loan
+  schedules        PaymentSchedule[] // Payment schedules
+  documents        Document[]     // Loan-related documents
+  notes            Note[]         // Loan notes/comments
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  REJECTED
+}
+
+enum LoanType {
+  PERSONAL
+  BUSINESS
+  EDUCATION
+  MORTGAGE
+  VEHICLE
+}
+
+// Payment model for tracking loan payments
+model Payment {
+  id            String    @id @default(cuid())
+  loanId        String
+  loan          Loan      @relation(fields: [loanId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  amount        Float
+  type          PaymentType
+  date          DateTime
+  status        PaymentStatus @default(PENDING)
+  reference     String?   // Payment reference number
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum PaymentType {
+  PRINCIPAL
+  INTEREST
+  LATE_FEE
+  PREPAYMENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+// Payment Schedule model for tracking due payments
+model PaymentSchedule {
+  id            String    @id @default(cuid())
+  loanId        String
+  loan          Loan      @relation(fields: [loanId], references: [id])
+  dueDate       DateTime
+  amount        Float
+  principal     Float
+  interest      Float
+  status        ScheduleStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum ScheduleStatus {
+  PENDING
+  PAID
+  OVERDUE
+  DEFAULTED
+}
+
+// Document model for storing document references
+model Document {
+  id            String    @id @default(cuid())
+  name          String
+  type          DocumentType
+  url           String    // URL to the stored document
+  borrowerId    String?
+  borrower      Borrower? @relation(fields: [borrowerId], references: [id])
+  loanId        String?
+  loan          Loan?     @relation(fields: [loanId], references: [id])
+  uploadedAt    DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum DocumentType {
+  ID_PROOF
+  ADDRESS_PROOF
+  INCOME_PROOF
+  BANK_STATEMENT
+  LOAN_AGREEMENT
+  OTHER
+}
+
+// Note model for comments and internal notes
+model Note {
+  id            String    @id @default(cuid())
+  loanId        String
+  loan          Loan      @relation(fields: [loanId], references: [id])
+  content       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
