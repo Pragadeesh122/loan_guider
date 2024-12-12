@@ -1,6 +1,6 @@
-import {ScheduleView} from "@/components/schedule-view";
+import {ScheduleSkeleton} from "@/components/skeletons/schedule-skeleton";
 
-export default function SchedulePage() {
+export default function ScheduleLoading() {
   return (
     <div className='container mx-auto px-4 py-6 md:px-6 lg:px-8'>
       <div className='mb-8'>
@@ -11,7 +11,7 @@ export default function SchedulePage() {
           View and manage all scheduled payments for your lendings
         </p>
       </div>
-      <ScheduleView />
+      <ScheduleSkeleton />
     </div>
   );
 }
